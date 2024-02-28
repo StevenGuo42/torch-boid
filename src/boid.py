@@ -4,7 +4,6 @@ from numbers import Number
 
 import torch
 
-from utils import sq_dist
 
 # boid
 @dataclass
@@ -41,22 +40,22 @@ class Flock(Boid):
         self.D = D
         self.N = N
         
-        self.box_bottom = self.parse_to_tensor(box_bottom)
-        self.box_top = self.parse_to_tensor(box_top)
-        self.margin_bottom = self.parse_to_tensor(margin_bottom)
-        self.margin_top = self.parse_to_tensor(margin_top)
+        self.box_bottom = self.parse_to_tensor(box_bottom).to(self.device)
+        self.box_top = self.parse_to_tensor(box_top).to(self.device)
+        self.margin_bottom = self.parse_to_tensor(margin_bottom).to(self.device)
+        self.margin_top = self.parse_to_tensor(margin_top).to(self.device)
         self.bound_bottom = self.box_bottom + self.margin_bottom
         self.bound_top = self.box_top - self.margin_top
         
         
-        self.box_upper_mat = self.box_top.unsqueeze(0).expand(N, -1)
-        self.box_lower_mat = self.box_bottom.unsqueeze(0).expand(N, -1)
+        self.box_upper_mat = self.box_top.unsqueeze(0).expand(N, -1).to(self.device)
+        self.box_lower_mat = self.box_bottom.unsqueeze(0).expand(N, -1).to(self.device)
         
         self.pass_through_edges = pass_through_edges
         self.bouncy_edges = bouncy_edges
         
         # init position and velocity of boids
-        self.pos = torch.rand((N, D)) * (self.bound_top - self.bound_bottom) + self.bound_bottom
+        self.pos = torch.rand((N, D), device=self.device) * (self.bound_top - self.bound_bottom) + self.bound_bottom
         if self.init_speed is None:
             self.vel = torch.randn((N, D), device=self.device) * (self.max_speed - self.min_speed) + self.min_speed
         else:
@@ -82,9 +81,9 @@ class Flock(Boid):
     def update(self):
         # region - init
         
-        print('-----------------Update--------------')
-        print('pos: \n', self.pos)
-        print('vel: \n', self.vel)
+        # print('-----------------Update--------------')
+        # print('pos: \n', self.pos)
+        # print('vel: \n', self.vel)
         
         pos_mat = self.pos.unsqueeze(1).expand(-1, self.N, -1)              # float (N,N,D)
         vel_mat = self.vel.unsqueeze(1).expand(-1, self.N, -1)              # float (N,N,D)
@@ -122,7 +121,7 @@ class Flock(Boid):
         # get boids in avoid radius
         avoid_mat = sq_dist_mat < self.avoid_radius ** 2
         avoid_mat.fill_diagonal_(0)                                         # bool (N,N)
-        print('avoid_mat: \n', avoid_mat.int())
+        # print('avoid_mat: \n', avoid_mat.int())
         # only avoid boids it can see
         if self.view_angle is not None and self.avoid_view:
             avoid_mat *= view_angle_mat
@@ -141,7 +140,7 @@ class Flock(Boid):
         # avoid_vel[avoid_mask] = -((pos_mat * avoid_mat).sum(dim=0))[avoid_mask]
         
         # avoid_vel = -(avoid_mat * diff).sum(dim=1) / avoid_mat.sum(dim=1)
-        print('avoid_vel: \n', avoid_vel)
+        # print('avoid_vel: \n', avoid_vel)
         # get edge avoid vector
         bottom_edge = torch.le(self.pos, self.bound_bottom)                 # bool (N,D)
         top_edge = torch.ge(self.pos, self.bound_top)
@@ -158,9 +157,9 @@ class Flock(Boid):
         view_mat = view_mat & ~avoid_mat
         
         view_mat_sum = view_mat.sum(dim=1)
-        print('view_mat_sum: \n', view_mat_sum)
+        # print('view_mat_sum: \n', view_mat_sum)
         view_mask = view_mat_sum != 0
-        print('view_mask: \n', view_mask.int())
+        # print('view_mask: \n', view_mask.int())
         avg_pos = torch.zeros((self.N, self.D), device=self.device)
         avg_pos[view_mask] = ((pos_mat * view_mat).sum(dim=0))[view_mask] \
                                 / view_mat_sum[view_mask]
@@ -169,8 +168,8 @@ class Flock(Boid):
         avg_vel[view_mask] = ((vel_mat * view_mat).sum(dim=0))[view_mask] \
                                 / view_mat_sum[view_mask]
 
-        print('avg_pos: \n', avg_pos)
-        print('avg_vel: \n', avg_vel)
+        # print('avg_pos: \n', avg_pos)
+        # print('avg_vel: \n', avg_vel)
         
         # region - compute velocity
         # cohe align only if boids in view
@@ -183,16 +182,16 @@ class Flock(Boid):
         # sep only if boids in avoid radius
         # Separation (move away from boids in avoid radius)
         sep_vel = avoid_vel * avoid_mask * self.sep_factor                  # float (N,D)        
-        print('sep_vel: \n', sep_vel)
+        # print('sep_vel: \n', sep_vel)
         # TODO: custom bias
         # Bias (move towards center of box)
         bias_vel = ((self.box_bottom + self.box_top) / 2 - self.pos) * self.bias_factor
-        print('bias_vel: \n', bias_vel)
+        # print('bias_vel: \n', bias_vel)
         
         # Edge (move away from edges)
         # # move up if bottom edge, move down if top edge
         edge_vel = bottom_edge * self.edge_factor - top_edge * self.edge_factor
-        print('edge_vel: \n', edge_vel)
+        # print('edge_vel: \n', edge_vel)
         # get new velocity
         sum_d_vel = cohe_vel + align_vel + sep_vel + bias_vel + edge_vel                # d_vel from boids rules
         # endregion
@@ -260,8 +259,8 @@ if __name__ == '__main__':
     # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     flock = Flock(D=2, N=5, box_top=50, is_debug = True, device=device)
     
-    print(flock)
+    # print(flock)
     
     flock.update()
     
-    print(flock)
+    # print(flock)

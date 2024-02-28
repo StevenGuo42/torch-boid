@@ -1,10 +1,12 @@
-# PyTorch boids simulation (WIP)
+# PyTorch Boids Simulation
 
 This is a simple boids simulation using PyTorch. It is based on the [Craig Reynolds' boids model](https://en.wikipedia.org/wiki/Boids).
 
 Algorithm is parallelized using PyTorch tensors and CUDA.
 
-> **Note:** This is a work in progress. The code contains bugs and the simulation is not fully functional.
+> **Note:** This is a work in progress. The code contains bugs and some core features are not fully implemented.
+> Demo of the current state of the simulation:
+> ![boids](./img/boids.gif)
 
 ## Requirements
 
@@ -15,13 +17,11 @@ Algorithm is parallelized using PyTorch tensors and CUDA.
 
 ## TODO
 
-- ### Bugs
-  - [ ] Boids are changing direction when there are no neighbors
-  - [ ] Bias applied to all boids instead of a subset
-
 - ### Features
+
   - [x] Add separation, alignment and cohesion to boids
   - [x] Add simulation using pygame
+  - [ ] Add bias to boids
   - [ ] Add a GUI to control the simulation
   - [ ] Add predators
   - [ ] Add better velocity indicators
